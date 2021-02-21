@@ -47,6 +47,7 @@ viewVideo() {
 	vlc "$1"
 }
 
+
 URL="N/A"
 VIDEOS="N/A"
 while :
@@ -59,7 +60,8 @@ do
 			echo "Commands:"
 			echo "?     Show this screen"
 			echo "h     Go to the youtube homepage"
-			echo "u     Select a video to view based on url"
+			echo "u     Select a video to view based on a url"
+			echo "s     Select a video to view based on its index"
 			echo "/     Search on youtube"
 			echo "d     Display the current URL and suggested videos"
 			echo "p     Play the current video"
@@ -74,11 +76,18 @@ do
 			read URL
 			VIDEOS=$(getData "$URL")
 			;;
-
+		s)
+			echo "$VIDEOS" | nl -n ln -b a
+			echo "Enter in the video to go to"
+			read LINE
+			ID=$(echo "$VIDEOS" | cut -b 1-11 | sed "${LINE}q;d")
+			URL=$(echo "https://www.youtube.com/watch?v=$ID")
+			VIDEOS=$(getData "$URL")
+			;;
 		d)
 			echo "You are watching $URL"
 			echo "Suggested videos:"
-			echo "$VIDEOS" | awk '{printf("%d	%s\n", NR, $0)}'
+			echo "$VIDEOS" | nl -n ln -b a
 			;;
 		p)
 			viewVideo "$URL"
@@ -87,7 +96,7 @@ do
 			break
 			;;
 		*)
-			echo "Invalid command."
+			echo "Invalid command. Type ? for help."
 			;;
 	esac
 done

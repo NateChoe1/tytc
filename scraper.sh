@@ -46,11 +46,16 @@ getData() {
 #[11 characters for the id of the video]	[the title of the video]
 #[11 characters for the next video id  ]	[the title of the next video]
 #...
-#This function is where all the scraping happens, if something breaks after a UI change, it's probably from this.
 
 viewVideo() {
 	vlc "$1"
 }
+
+viewThumbnail() {
+	feh "https://i.ytimg.com/vi/$1/maxresdefault.jpg"
+}
+
+#Everything above this is where the scraping occurs. As long as these functions work, the entire thing will work. The higher up the function is the more at risk the function is of breaking.
 
 displayVideos() {
 	echo "$1" | nl -n ln -b a
@@ -77,6 +82,8 @@ do
 			echo "/     Search on youtube"
 			echo "d     Display the current URL and suggested videos"
 			echo "p     Play the current video"
+			echo "vc    View the thumbnail of the current video"
+			echo "vs    View the thumbnail of a suggested video"
 			echo "q     Quit the program"
 			;;
 		h)
@@ -110,6 +117,15 @@ do
 			;;
 		p)
 			viewVideo "$URL"
+			;;
+		vc)
+			viewThumbnail "$(echo "$URL" | cut -b 33-)"
+			;;
+		vs)
+			displayVideos "$VIDEOS"
+			echo "Enter in the video to view the thumbnail of"
+			read LINE
+			viewThumbnail "$(echo "$VIDEOS" | cut -b 1-11 | sed "${LINE}q;d")"
 			;;
 		q)
 			break

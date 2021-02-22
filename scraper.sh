@@ -52,7 +52,7 @@ viewVideo() {
 }
 
 viewThumbnail() {
-	feh "https://i.ytimg.com/vi/$1/maxresdefault.jpg"
+	feh "https://i.ytimg.com/vi/$1/maxresdefault.jpg" || feh "https://i.ytimg.com/vi/$1/mqdefault.jpg" || feh "https://i.ytimg.com/vi/$1/default.jpg"
 }
 
 #Everything above this is where the scraping occurs. As long as these functions work, the entire thing will work. The higher up the function is the more at risk the function is of breaking.

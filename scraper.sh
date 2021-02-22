@@ -34,8 +34,9 @@ getData() {
 		TITLE=$(echo "$DATA_RAW" | grep -Po "^\"simpleText\":$STRING_REGEX" | cut -b 15- | sed 's/.$//');
 	elif [[ $1 =~ ^https://www.youtube.com/results\?search_query=.*/?$ ]]
 	then
-		DATA_RAW=$(echo "$1" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\",\"thumbnail\".*?\"text\":$STRING_REGEX")
-		echo "$DATA_RAW"
+		DATA_RAW=$(echo "$HTML" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\",\"thumbnail\".*?\"text\":$STRING_REGEX" | cut -b 12-)
+		ID=$(echo "$DATA_RAW" | cut -b 1-11)
+		TITLE=$(echo "$DATA_RAW" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	fi
 	#This could probably be done with a case statement but the second regex would be massive.
 
@@ -56,7 +57,7 @@ displayVideos() {
 }
 
 sanitizeSearch() {
-	echo "$1" | sed "s/ /+/"
+	echo "$1" | sed "s/ /+/g"
 }
 
 URL="N/A"
@@ -101,7 +102,6 @@ do
 			QUERY=$(sanitizeSearch "$QUERY")
 			URL="https://www.youtube.com/results?search_query=$QUERY"
 			VIDEOS=$(getData "$URL")
-			echo "$VIDEOS"
 			;;
 		d)
 			echo "You are on this page: $URL"

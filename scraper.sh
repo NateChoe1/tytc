@@ -40,7 +40,7 @@ getData() {
 	fi
 	#This could probably be done with a case statement but the second regex would be massive.
 
-	paste <(echo "$ID") <(echo "$TITLE")
+	paste <(echo "$ID") <(echo "$TITLE") | uniq
 }
 #getData takes in a youtube link as an input and outputs all the related videos (or front page videos in the case of https://www.youtube.com/) in this form:
 #[11 characters for the id of the video]	[the title of the video]

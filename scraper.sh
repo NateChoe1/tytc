@@ -18,21 +18,24 @@ getData() {
 	HTML=$(curl -s -A "$USER_AGENT" "$1")
 	ID="No IDs found"
 	TITLE="No titles found"
+	STRING_REGEX="((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\""
+	#https://www.metaltoad.com/blog/regex-quoted-string-escapable-quotes
 	if [[ "$1" =~ ^https://www.youtube.com/?$ ]]
 	then
 		DATA_RAW=$(echo "$HTML" | grep -Po "{\"videoId\":\"[a-zA-Z0-9_-]{11}\",.*?\"text\":\".*?[^\\\\]\"" | cut -b 13- | uniq -w 11)
 		#includes the name of the video and the id
 		ID=$(echo "$DATA_RAW" | cut -b 1-11)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\1$" | cut -b 2- | sed 's/.$//')
-		#https://www.metaltoad.com/blog/regex-quoted-string-escapable-quotes
+		TITLE=$(echo "$DATA_RAW" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ "$1" =~ ^https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]{11}/?$ ]]
 	then
-		DATA_RAW=$(echo "$HTML" | grep -Po "\"simpleText\":((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\1},\"shortBylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
+		DATA_RAW=$(echo "$HTML" | grep -Po "\"simpleText\":$STRING_REGEX},\"(short|long)BylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
 		#includes the name of the video and the id
 		ID=$(echo "$DATA_RAW" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\"" | cut -b 12-22)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "^\"simpleText\":((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\1" | cut -b 15- | sed 's/.$//');
-	else
-		echo "Didn't match"
+		TITLE=$(echo "$DATA_RAW" | grep -Po "^\"simpleText\":$STRING_REGEX" | cut -b 15- | sed 's/.$//');
+	elif [[ $1 =~ ^https://www.youtube.com/results\?search_query=.*/?$ ]]
+	then
+		DATA_RAW=$(echo "$1" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\",\"thumbnail\".*?\"text\":$STRING_REGEX")
+		echo "$DATA_RAW"
 	fi
 	#This could probably be done with a case statement but the second regex would be massive.
 
@@ -42,11 +45,19 @@ getData() {
 #[11 characters for the id of the video]	[the title of the video]
 #[11 characters for the next video id  ]	[the title of the next video]
 #...
+#This function is where all the scraping happens, if something breaks after a UI change, it's probably from this.
 
 viewVideo() {
 	vlc "$1"
 }
 
+displayVideos() {
+	echo "$1" | nl -n ln -b a
+}
+
+sanitizeSearch() {
+	echo "$1" | sed "s/ /+/"
+}
 
 URL="N/A"
 VIDEOS="N/A"
@@ -77,17 +88,25 @@ do
 			VIDEOS=$(getData "$URL")
 			;;
 		s)
-			echo "$VIDEOS" | nl -n ln -b a
+			displayVideos "$VIDEOS"
 			echo "Enter in the video to go to"
 			read LINE
 			ID=$(echo "$VIDEOS" | cut -b 1-11 | sed "${LINE}q;d")
 			URL=$(echo "https://www.youtube.com/watch?v=$ID")
 			VIDEOS=$(getData "$URL")
 			;;
+		/)
+			echo "Enter the search query"
+			read QUERY
+			QUERY=$(sanitizeSearch "$QUERY")
+			URL="https://www.youtube.com/results?search_query=$QUERY"
+			VIDEOS=$(getData "$URL")
+			echo "$VIDEOS"
+			;;
 		d)
-			echo "You are watching $URL"
+			echo "You are on this page: $URL"
 			echo "Suggested videos:"
-			echo "$VIDEOS" | nl -n ln -b a
+			displayVideos "$VIDEOS"
 			;;
 		p)
 			viewVideo "$URL"

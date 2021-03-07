@@ -1,0 +1,10 @@
+These dependencies are required, but the program is modular enough that these can be easily changed.
+vlc
+feh
+
+These dependencies are definitely required.
+curl
+youtube-dl
+
+These dependencies are entirely optional
+less (should be installed on the vast majority of systems)

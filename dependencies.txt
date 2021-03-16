@@ -4,7 +4,7 @@ feh
 
 These dependencies are definitely required.
 curl
-youtube-dl
+youtube-dl (for the cc command)
 
 These dependencies are entirely optional
-less (should be installed on the vast majority of systems)
+less (should be installed on the vast majority of systems, for displaying large quantities of videos.)

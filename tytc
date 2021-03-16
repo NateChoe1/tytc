@@ -41,7 +41,7 @@ getData() {
 		TITLE=$(echo "$DATA_RAW" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ $1 =~ ^https://www.youtube.com/playlist ]]
 	then
-		DATA_RAW=$(youtube-dl -4 --flat-playlist --dump-json $1)
+		DATA_RAW=$(youtube-dl --flat-playlist --dump-json $1)
 		#This is an extra dependency, but I really have no idea how to not have this. I tried scraping html, but youtube only sends you 100 videos per playlist, and I want the entire thing.
 		ID=$(echo "$DATA_RAW" | grep -Po "\"id\": \"[a-zA-Z0-9_-]{11}\"" | cut -b 8-18)
 		TITLE=$(echo "$DATA_RAW" | grep -Po "\"title\": $STRING_REGEX" | cut -b 11- | sed "s/.$//")

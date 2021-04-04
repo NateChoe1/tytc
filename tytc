@@ -297,7 +297,8 @@ do
 		ss)
 			echo "Please select a channel to go to"
 			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
-			URL=$(urlFromChannelId $(selectItem $(echo "$SUBSCRIPTIONS" | cut -b 1-$CHANNEL_ID_LENGTH)))
+			LINE=$(selectItem "$(echo "$SUBSCRIPTIONS" | cut -b 1-$CHANNEL_ID_LENGTH)")
+			URL=$(urlFromChannelId $LINE)
 			VIDEOS=$(getData "$URL")
 			;;
 		su)

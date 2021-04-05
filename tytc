@@ -169,8 +169,8 @@ fi
 trap end INT
 
 end() {
-	mkdir -p "$FILE" 2> /dev/null
-	rm -r "$FILE"
+	mkdir -p $(dirname "$FILE")
+	rm "$FILE"
 	echo "$SUBSCRIPTIONS" >> "$FILE"
 	exit
 }
@@ -212,6 +212,7 @@ do
 			echo "sv    View the subscriptions"
 			echo "ss    Select a subscribed channel to go to"
 			echo "su    Unsubscribe to a channel"
+			echo "r     refresh the page"
 			echo "q     Quit the program"
 			;;
 		h)
@@ -306,6 +307,11 @@ do
 			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
 			read LINE
 			SUBSCRIPTIONS=$(echo "$SUBSCRIPTIONS" | awk "NR != $LINE")
+			;;
+		r)
+			CHANNEL_DATA=$(getChannelCreator "$URL")
+			CHANNEL_ID=$(echo "$CHANNEL_DATA" | cut -b 1-$CHANNEL_ID_LENGTH)
+			VIDEOS=$(getData "$URL")
 			;;
 		q)
 			end

@@ -82,6 +82,17 @@ urlFromChannelId() {
 	echo "https://www.youtube.com/playlist?list=$CHANNEL_ID"
 }
 
+sanitizeSearch() {
+	echo "$1" | sed "s/ /+/g"
+	#This has the potential to get much more complicated so I'm putting it in its own
+	#function.
+}
+
+generateSearchQuery() {
+	QUERY=$(sanitizeSearch "$1")
+	echo "https://www.youtube.com/results?search_query=$QUERY"
+}
+
 
 
 
@@ -98,8 +109,7 @@ calc() { awk "BEGIN { print "$*" }"; }
 #https://stackoverflow.com/questions/18093871/how-can-i-do-division-with-variables-in-a-linux-shell
 
 selectItem() {
-	read LINE
-	LINE=$(echo "$LINE" | grep -Po "^[0-9]+$")
+	read LINE LINE=$(echo "$LINE" | grep -Po "^[0-9]+$")
 	if [[ -z "$LINE" ]]
 	then
 		echo ""
@@ -153,10 +163,6 @@ displayVideos() {
 	fi
 }
 
-sanitizeSearch() {
-	echo "$1" | sed "s/ /+/g"
-}
-
 URL="N/A"
 VIDEOS="N/A"
 SUBSCRIPTIONS=""
@@ -195,26 +201,25 @@ do
 	case "$ACTION" in
 		\?)
 			echo "Commands:"
-			echo "?     Show this screen"
-			echo "h     Go to the youtube homepage"
-			echo "u     Select a video to view based on a url"
-			echo "s     Select a video to view based on its index"
-			echo "/     Search on youtube. You can use either / as a single command and"
-			echo "      enter the query on the next line, or do /<query>"
-			echo "d     Display the current URL and suggested videos"
-			echo "p     Play the current video"
-			echo "vc    View the thumbnail of the current video"
-			echo "vs    View the thumbnail of a suggested video"
-			echo "c     See information on the channel of the video"
-			echo "cc    Go to the channel of the video"
-			echo "o     Set a subscriptions file"
-			echo "or    Open a subscriptions file and replace the current subscriptions."
-			echo "sa    Add the current channel to the subscriptions"
-			echo "sv    View the subscriptions"
-			echo "ss    Select a subscribed channel to go to"
-			echo "su    Unsubscribe to a channel"
-			echo "r     refresh the page"
-			echo "q     Quit the program"
+			echo "?         Show this screen"
+			echo "h         Go to the youtube homepage"
+			echo "u         Select a video to view based on a url"
+			echo "s         Select a video to view based on its index"
+			echo "/<query>  Search on youtube."
+			echo "d         Display the current URL and suggested videos"
+			echo "p         Play the current video"
+			echo "vc        View the thumbnail of the current video"
+			echo "vs        View the thumbnail of a suggested video"
+			echo "c         See information on the channel of the video"
+			echo "cc        Go to the channel of the video"
+			echo "o         Set a subscriptions file"
+			echo "or        Open a subscriptions file and replace the current subscriptions."
+			echo "sa        Add the current channel to the subscriptions"
+			echo "sv        View the subscriptions"
+			echo "ss        Select a subscribed channel to go to"
+			echo "su        Unsubscribe to a channel"
+			echo "r         refresh the page"
+			echo "q         Quit the program"
 			;;
 		h)
 			URL="https://www.youtube.com/"
@@ -242,16 +247,7 @@ do
 			fi
 			;;
 		/*?)
-			if [[ ACTION == "/" ]]
-			then
-				echo "Enter the search query"
-				read QUERY
-			else
-				QUERY=$(echo "$ACTION" | cut -b 2-)
-			fi
-
-			QUERY=$(sanitizeSearch "$QUERY")
-			URL="https://www.youtube.com/results?search_query=$QUERY"
+			URL=$(generateSearchQuery (echo "$ACTION" | cut -b 2-)
 			HTML=$(curl -s -A "$USER_AGENT" "$URL")
 			VIDEOS=$(getData "$URL")
 			;;

@@ -63,11 +63,17 @@ getData() {
 getChannelCreator() {
 	STRING_REGEX="((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\""
 	if [[ "$1" =~ ^https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]{11}/?$ ]]
-	then DATA_RAW=$(echo "$HTML" | grep -Po "\"channelId\":$STRING_REGEX,\"isOwnerViewing\":.*?\"author\":$STRING_REGEX")
+	then
+		DATA_RAW=$(echo "$HTML" | grep -Po "\"channelId\":$STRING_REGEX,\"isOwnerViewing\":.*?\"author\":$STRING_REGEX")
 		#includes the name of the video and the id
-		CHANNEL_NAME=$(echo "$DATA_RAW" | grep -Po "^\"channelId\":$STRING_REGEX" | cut -b 14- | sed "s/.$//")
-		CHANNEL_ID=$(echo "$DATA_RAW" | grep -Po "\"author\":$STRING_REGEX$" | cut -b 11- | sed "s/.$//")
-		echo "$CHANNEL_NAME$CHANNEL_ID"
+		CHANNEL_ID=$(echo "$DATA_RAW" | grep -Po "^\"channelId\":$STRING_REGEX" | cut -b 14- | sed "s/.$//")
+		CHANNEL_NAME=$(echo "$DATA_RAW" | grep -Po "\"author\":$STRING_REGEX$" | cut -b 11- | sed "s/.$//")
+		echo "$CHANNEL_ID$CHANNEL_NAME"
+	elif [[ "$1" =~ ^https://www.youtube.com/playlist\?list=[a-zA-Z0-9_-]{24}/?$ ]]
+	then
+		CHANNEL_NAME=$(echo "$HTML" | grep -Po "BylineText\":{\"runs\":\[{\"text\":$STRING_REGEX" | cut -b 31- | sed "s/.$//" | awk "NR == 1 {print}")
+		CHANNEL_ID=$(echo "$1" | cut -b 39-62)
+		echo "$CHANNEL_ID$CHANNEL_NAME"
 	fi
 }
 
@@ -182,6 +188,11 @@ end() {
 	exit
 }
 
+updateVars() {
+	HTML=$(curl -s -A "$USER_AGENT" "$1")
+	VIDEOS=$(getData "$1")
+}
+
 for ARG in "$@"
 do
 	if [ "$ARG" == "-h" ] || [ "$ARG" == "--help" ]
@@ -228,8 +239,7 @@ do
 			;;
 		\>?*)
 			URL=$(echo "$ACTION" | cut -b 2-)
-			HTML=$(curl -s -A "$USER_AGENT" "$URL")
-			VIDEOS=$(getData "$URL")
+			updateVars $URL
 			;;
 		s)
 			displayVideos "$VIDEOS"
@@ -241,16 +251,14 @@ do
 			else
 				ID=$(echo "$LINE" | cut -b 1-$ID_LENGTH)
 				URL=$(urlFromId "$ID")
-				HTML=$(curl -s -A "$USER_AGENT" "$URL")
-				VIDEOS=$(getData "$URL")
+				updateVars $URL
 			fi
 			;;
 		/?*)
-			URL=$(generateSearchQuery (echo "$ACTION" | cut -b 2-))
+			URL=$(generateSearchQuery $(echo "$ACTION" | cut -b 2-))
 			#This was missing a close paren and I was wondering what was wrong
 			#for 20 minutes. I am dumb.
-			HTML=$(curl -s -A "$USER_AGENT" "$URL")
-			VIDEOS=$(getData "$URL")
+			updateVars $URL
 			;;
 		d)
 			echo "You are on this page: $URL"
@@ -280,7 +288,7 @@ do
 			CHANNEL_DATA=$(getChannelCreator "$URL")
 			CHANNEL_ID=$(echo "$CHANNEL_DATA" | cut -b 1-$CHANNEL_ID_LENGTH)
 			URL=$(urlFromChannelId "$CHANNEL_ID")
-			VIDEOS=$(getData "$URL")
+			updateVars $URL
 			;;
 		o)
 			read FILE
@@ -304,7 +312,7 @@ do
 			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
 			LINE=$(selectItem "$(echo "$SUBSCRIPTIONS" | cut -b 1-$CHANNEL_ID_LENGTH)")
 			URL=$(urlFromChannelId $LINE)
-			VIDEOS=$(getData "$URL")
+			updateVars $URL
 			;;
 		su)
 			echo "Please select a channel to unsubscribe from"

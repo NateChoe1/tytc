@@ -109,7 +109,8 @@ calc() { awk "BEGIN { print "$*" }"; }
 #https://stackoverflow.com/questions/18093871/how-can-i-do-division-with-variables-in-a-linux-shell
 
 selectItem() {
-	read LINE LINE=$(echo "$LINE" | grep -Po "^[0-9]+$")
+	read LINE
+	LINE=$(echo "$LINE" | grep -Po "^[0-9]+$")
 	if [[ -z "$LINE" ]]
 	then
 		echo ""
@@ -203,9 +204,9 @@ do
 			echo "Commands:"
 			echo "?         Show this screen"
 			echo "h         Go to the youtube homepage"
-			echo "u         Select a video to view based on a url"
+			echo ">[url]    Select a video to view based on a url"
 			echo "s         Select a video to view based on its index"
-			echo "/<query>  Search on youtube."
+			echo "/[query]  Search on youtube."
 			echo "d         Display the current URL and suggested videos"
 			echo "p         Play the current video"
 			echo "vc        View the thumbnail of the current video"
@@ -226,9 +227,8 @@ do
 			HTML=$(curl -s -A "$USER_AGENT" "$URL")
 			VIDEOS=$(getData "$URL")
 			;;
-		u)
-			echo "Enter in the youtube video to go to"
-			read URL
+		\>?*)
+			URL=$(echo "$ACTION" | cut -b 2-)
 			HTML=$(curl -s -A "$USER_AGENT" "$URL")
 			VIDEOS=$(getData "$URL")
 			;;
@@ -246,8 +246,10 @@ do
 				VIDEOS=$(getData "$URL")
 			fi
 			;;
-		/*?)
-			URL=$(generateSearchQuery (echo "$ACTION" | cut -b 2-)
+		/?*)
+			URL=$(generateSearchQuery (echo "$ACTION" | cut -b 2-))
+			#This was missing a close paren and I was wondering what was wrong
+			#for 20 minutes. I am dumb.
 			HTML=$(curl -s -A "$USER_AGENT" "$URL")
 			VIDEOS=$(getData "$URL")
 			;;

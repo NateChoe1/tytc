@@ -255,7 +255,7 @@ do
 			fi
 			;;
 		/?*)
-			URL=$(generateSearchQuery $(echo "$ACTION" | cut -b 2-))
+			URL=$(generateSearchQuery "$(echo "$ACTION" | cut -b 2-)")
 			#This was missing a close paren and I was wondering what was wrong
 			#for 20 minutes. I am dumb.
 			updateVars $URL

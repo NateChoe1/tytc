@@ -128,7 +128,7 @@ displayVideos() {
 		echo "(1): Just print out the list like normal"
 		echo "(2): Pipe the list through less"
 		echo "(3): Print out a $PAGE_LENGTH video section of the list"
-		echo "(4): Just don't print out the list at all."
+		echo "If you enter something not in this list, the list just won't print."
 		read OPTION
 		case "$OPTION" in
 			1)
@@ -155,7 +155,7 @@ displayVideos() {
 					fi
 				done
 				;;
-			4)
+			*)
 				echo "Not printing list."
 				;;
 		esac

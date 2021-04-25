@@ -12,7 +12,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #!/bin/bash
-USER_AGENT="Definitely a real web browser"
+USER_AGENT="Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"
 
 PAGE_LENGTH=50
 
@@ -109,7 +109,7 @@ generateSearchQuery() {
 
 
 
-viewVideo() { mpv "$1" --ytdl-raw-options-add=user-agent=$USER_AGENT; }
+viewVideo() { mpv "$1" "--ytdl-raw-options-add=user-agent=$USER_AGENT"; }
 
 calc() { awk "BEGIN { print "$*" }"; }
 #https://stackoverflow.com/questions/18093871/how-can-i-do-division-with-variables-in-a-linux-shell
@@ -182,10 +182,7 @@ fi
 trap end INT
 
 end() {
-	mkdir -p $(dirname "$FILE")
-	rm "$FILE"
-	echo "$SUBSCRIPTIONS" >> "$FILE"
-	exit
+	echo "Use q to quit"
 }
 
 updateVars() {
@@ -311,8 +308,13 @@ do
 			echo "Please select a channel to go to"
 			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
 			LINE=$(selectItem "$(echo "$SUBSCRIPTIONS" | cut -b 1-$CHANNEL_ID_LENGTH)")
-			URL=$(urlFromChannelId $LINE)
-			updateVars $URL
+			if [[ -z "$LINE" ]]
+			then
+				echo "That wasn't a number."
+			else
+				URL=$(urlFromChannelId $LINE)
+				updateVars $URL
+			fi
 			;;
 		su)
 			echo "Please select a channel to unsubscribe from"
@@ -321,7 +323,7 @@ do
 			SUBSCRIPTIONS=$(echo "$SUBSCRIPTIONS" | awk "NR != $LINE")
 			;;
 		q)
-			end
+			exit
 			;;
 		*)
 			echo "Invalid command. Type ? for help."

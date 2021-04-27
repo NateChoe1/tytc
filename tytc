@@ -182,7 +182,9 @@ fi
 trap end INT
 
 end() {
-	echo "Use q to quit"
+	rm "$FILE"
+	echo "$SUBSCRIPTIONS" >> "$FILE"
+	exit
 }
 
 updateVars() {
@@ -323,7 +325,7 @@ do
 			SUBSCRIPTIONS=$(echo "$SUBSCRIPTIONS" | awk "NR != $LINE")
 			;;
 		q)
-			exit
+			end
 			;;
 		*)
 			echo "Invalid command. Type ? for help."

@@ -16,41 +16,43 @@ USER_AGENT="Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"
 
 PAGE_LENGTH=50
 
-HTML=""
+html=""
 ID_LENGTH=11
 CHANNEL_ID_LENGTH=24
 
+STRING_REGEX="((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\""
+#This isn't anything customizable, it's just a constant used twice.
+
 getData() {
-	ID="No IDs found"
-	TITLE="No titles found"
-	STRING_REGEX="((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\""
+	id="No IDs found"
+	title="No titles found"
 	#https://www.metaltoad.com/blog/regex-quoted-string-escapable-quotes
 	if [[ "$1" =~ ^https://www.youtube.com/?$ ]]
 	then
-		DATA_RAW=$(echo "$HTML" | grep -Po "{\"videoId\":$STRING_REGEX,.*?\"text\":$STRING_REGEX" | cut -b 13- | uniq -w 11)
+		rawData=$(echo "$HTML" | grep -Po "{\"videoId\":$STRING_REGEX,.*?\"text\":$STRING_REGEX" | cut -b 13- | uniq -w 11)
 		#includes the name of the video and the id
-		ID=$(echo "$DATA_RAW" | cut -b 1-11)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
+		id=$(echo "$rawData" | cut -b 1-11)
+		title=$(echo "$rawData" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ "$1" =~ ^https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]{11}/?$ ]]
 	then
-		DATA_RAW=$(echo "$HTML" | grep -Po "\"simpleText\":$STRING_REGEX},\"(short|long)BylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
+		rawData=$(echo "$HTML" | grep -Po "\"simpleText\":$STRING_REGEX},\"(short|long)BylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
 		#includes the name of the video and the id
-		ID=$(echo "$DATA_RAW" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\"" | cut -b 12-22)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "^\"simpleText\":$STRING_REGEX" | cut -b 15- | sed 's/.$//');
+		id=$(echo "$rawData" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\"" | cut -b 12-22)
+		title=$(echo "$rawData" | grep -Po "^\"simpleText\":$STRING_REGEX" | cut -b 15- | sed 's/.$//');
 	elif [[ $1 =~ ^https://www.youtube.com/results\?search_query=.*/?$ ]]
 	then
-		DATA_RAW=$(echo "$HTML" | grep -Po "\"videoId\":$STRING_REGEX,\"thumbnail\".*?\"text\":$STRING_REGEX" | cut -b 12-)
-		ID=$(echo "$DATA_RAW" | cut -b 1-11)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
+		rawData=$(echo "$HTML" | grep -Po "\"videoId\":$STRING_REGEX,\"thumbnail\".*?\"text\":$STRING_REGEX" | cut -b 12-)
+		id=$(echo "$rawData" | cut -b 1-11)
+		title=$(echo "$rawData" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ $1 =~ ^https://www.youtube.com/playlist ]]
 	then
-		DATA_RAW=$(youtube-dl --flat-playlist --dump-json $1)
-		ID=$(echo "$DATA_RAW" | grep -Po "\"id\": \"[a-zA-Z0-9_-]{11}\"" | cut -b 8-18)
-		TITLE=$(echo "$DATA_RAW" | grep -Po "\"title\": $STRING_REGEX" | cut -b 11- | sed "s/.$//")
+		rawData=$(youtube-dl --flat-playlist --dump-json $1)
+		id=$(echo "$rawData" | grep -Po "\"id\": \"[a-zA-Z0-9_-]{11}\"" | cut -b 8-18)
+		title=$(echo "$rawData" | grep -Po "\"title\": $STRING_REGEX" | cut -b 11- | sed "s/.$//")
 	fi
 	#This could probably be done with a case statement but the second regex would be massive.
 
-	paste <(echo "$ID") <(echo "$TITLE") "-d " | uniq -u
+	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u
 }
 #getData reads from HTML and outputs all the related videos (or front page videos in the case of https://www.youtube.com/) in this form:
 #[11 characters for the id of the video] [the title of the video]
@@ -61,19 +63,18 @@ getData() {
 #The other functions which don't use scraping don't use magic numbers.
 
 getChannelCreator() {
-	STRING_REGEX="((?<![\\\\])\")((?:.(?!(?<![\\\\])\1))*.?)\""
 	if [[ "$1" =~ ^https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]{11}/?$ ]]
 	then
-		DATA_RAW=$(echo "$HTML" | grep -Po "\"channelId\":$STRING_REGEX,\"isOwnerViewing\":.*?\"author\":$STRING_REGEX")
+		rawData=$(echo "$html" | grep -Po "\"channelId\":$STRING_REGEX,\"isOwnerViewing\":.*?\"author\":$STRING_REGEX")
 		#includes the name of the video and the id
-		CHANNEL_ID=$(echo "$DATA_RAW" | grep -Po "^\"channelId\":$STRING_REGEX" | cut -b 14- | sed "s/.$//")
-		CHANNEL_NAME=$(echo "$DATA_RAW" | grep -Po "\"author\":$STRING_REGEX$" | cut -b 11- | sed "s/.$//")
-		echo "$CHANNEL_ID$CHANNEL_NAME"
+		channelId=$(echo "$rawData" | grep -Po "^\"channelId\":$STRING_REGEX" | cut -b 14- | sed "s/.$//")
+		channelName=$(echo "$rawData" | grep -Po "\"author\":$STRING_REGEX$" | cut -b 11- | sed "s/.$//")
+		echo "$channelId$channelName"
 	elif [[ "$1" =~ ^https://www.youtube.com/playlist\?list=[a-zA-Z0-9_-]{24}/?$ ]]
 	then
-		CHANNEL_NAME=$(echo "$HTML" | grep -Po "BylineText\":{\"runs\":\[{\"text\":$STRING_REGEX" | cut -b 31- | sed "s/.$//" | awk "NR == 1 {print}")
-		CHANNEL_ID=$(echo "$1" | cut -b 39-62)
-		echo "$CHANNEL_ID$CHANNEL_NAME"
+		channelName=$(echo "$HTML" | grep -Po "BylineText\":{\"runs\":\[{\"text\":$STRING_REGEX" | cut -b 31- | sed "s/.$//" | awk "NR == 1 {print}")
+		channelId=$(echo "$1" | cut -b 39-62)
+		echo "$channelId$channelName"
 	fi
 }
 
@@ -81,11 +82,11 @@ viewThumbnail() { feh "https://i.ytimg.com/vi/$1/maxresdefault.jpg" feh "https:/
 
 urlFromId() { echo "https://www.youtube.com/watch?v=$1"; }
 urlFromChannelId() {
-	CHANNEL_ID="UU$(echo "$1" | cut -b 3-)"
+	channelId="UU$(echo "$1" | cut -b 3-)"
 	#The play all feature in youtube generates a playlist with the following format:
 	#https:///www.youtube.com/playlist?list=UU{CHANNEL_ID]}
 	#where CHANNEL_ID has the first 2 characters, which are always UC, removed. This new CHANNEL_ID is really just the modified channel ID for the link.
-	echo "https://www.youtube.com/playlist?list=$CHANNEL_ID"
+	echo "https://www.youtube.com/playlist?list=$chanelId"
 }
 
 sanitizeSearch() {
@@ -95,8 +96,8 @@ sanitizeSearch() {
 }
 
 generateSearchQuery() {
-	QUERY=$(sanitizeSearch "$1")
-	echo "https://www.youtube.com/results?search_query=$QUERY"
+	query=$(sanitizeSearch "$1")
+	echo "https://www.youtube.com/results?search_query=$query"
 }
 
 
@@ -111,90 +112,68 @@ generateSearchQuery() {
 
 viewVideo() { mpv "$1" "--ytdl-raw-options-add=user-agent=$USER_AGENT"; }
 
-calc() { awk "BEGIN { print "$*" }"; }
-#https://stackoverflow.com/questions/18093871/how-can-i-do-division-with-variables-in-a-linux-shell
-
 selectItem() {
-	read LINE
-	LINE=$(echo "$LINE" | grep -Po "^[0-9]+$")
-	if [[ -z "$LINE" ]]
+	read line
+	line=$(echo "$line" | grep -Po "^[0-9]+$")
+	if [[ -z "$line" ]]
 	then
 		echo ""
 	else
-		echo "$1" | sed "${LINE}q;d"
+		echo "$1" | sed "${line}q;d"
 	fi
 }
 
 displayVideos() {
-	VIDEO_LIST=$(echo "$1" | cut -b $(calc $ID_LENGTH+2)- | nl -n ln -b a)
-	VIDEO_COUNT=$(echo "$VIDEO_LIST" | wc -l)
-	if [[ "$VIDEO_COUNT" -gt $PAGE_LENGTH ]]
+	videoList=$(echo "$1" | cut -b $(($ID_LENGTH + 1))- | nl -n ln -b a)
+	videoCount=$(echo "$videoList" | wc -l)
+	if [[ "$videoCount" -gt $PAGE_LENGTH ]]
 	then
 		echo "There seem to be more than $PAGE_LENGTH videos on the list (specifically $VIDEO_COUNT). There are 4 possible things you can do in this situation:"
 		echo "(1): Just print out the list like normal"
 		echo "(2): Pipe the list through less"
-		echo "(3): Print out a $PAGE_LENGTH video section of the list"
 		echo "If you enter something not in this list, the list just won't print."
-		read OPTION
-		case "$OPTION" in
+		read option
+		case "$option" in
 			1)
-				echo "$VIDEO_LIST"
+				echo "$videoList"
 				;;
 			2)
-				echo "$VIDEO_LIST" | less
-				;;
-			3)
-				while :
-				do
-					PAGE_COUNT=$(calc $VIDEO_COUNT/$PAGE_LENGTH | sed -E "s/\.[0-9]*$//g")
-					echo "Enter in the page that you want to go to (0-$(calc $PAGE_COUNT)), q to stop displaying videos."
-					read PAGE_SELECTION
-					if [[ "$PAGE_SELECTION" == "q" ]]
-					then
-						break
-					else
-						BOTTOM_PAGE=$(calc $PAGE_SELECTION*$PAGE_LENGTH)
-						TOP_PAGE=$(calc $PAGE_SELECTION*$PAGE_LENGTH+$PAGE_LENGTH)
-						echo "$VIDEO_LIST" | awk "NR > $BOTTOM_PAGE && NR <= $TOP_PAGE { print }"
-						#https://stackoverflow.com/questions/6491532/how-to-subset-a-file-select-a-numbers-of-rows-or-columns
-						#I should really learn awk.
-					fi
-				done
+				echo "$videoList" | less
 				;;
 			*)
 				echo "Not printing list."
 				;;
 		esac
 	else
-		echo "$VIDEO_LIST"
+		echo "$videoList"
 	fi
 }
 
-URL="N/A"
-VIDEOS="N/A"
-SUBSCRIPTIONS=""
-FILE="$HOME/.cache/tytc/subscriptions"
+url="N/A"
+videos="N/A"
+subscriptions=""
+file="$HOME/.cache/tytc/subscriptions"
 if [ -f "$FILE" ]
 then
-	SUBSCRIPTIONS=$(cat "$FILE")
+	subscriptions=$(cat "$file")
 fi
 
 trap end INT
 
 end() {
-	rm "$FILE"
-	echo "$SUBSCRIPTIONS" >> "$FILE"
+	rm "$file"
+	echo "$subscriptions" >> "$file"
 	exit
 }
 
 updateVars() {
-	HTML=$(curl -s -A "$USER_AGENT" "$1")
-	VIDEOS=$(getData "$1")
+	html=$(curl -s -A "$USER_AGENT" "$1")
+	videos=$(getData "$1")
 }
 
-for ARG in "$@"
+for arg in "$@"
 do
-	if [ "$ARG" == "-h" ] || [ "$ARG" == "--help" ]
+	if [ "$arg" == "-h" ] || [ "$arg" == "--help" ]
 	then
 		echo "Usage: tytc [subscription file]"
 		echo "The subscription just contains the channels you're subscribed to."
@@ -229,100 +208,119 @@ do
 			echo "sv        View the subscriptions"
 			echo "ss        Select a subscribed channel to go to"
 			echo "su        Unsubscribe to a channel"
+			echo "r         Refresh the current page"
 			echo "q         Quit the program"
 			;;
 		h)
-			URL="https://www.youtube.com/"
-			HTML=$(curl -s -A "$USER_AGENT" "$URL")
-			VIDEOS=$(getData "$URL")
+			url="https://www.youtube.com/"
+			html=$(curl -s -A "$USER_AGENT" "$url")
+			videos=$(getData "$url")
 			;;
 		\>?*)
-			URL=$(echo "$ACTION" | cut -b 2-)
-			updateVars $URL
+			url=$(echo "$ACTION" | cut -b 2-)
+			updateVars $url
 			;;
 		s)
-			displayVideos "$VIDEOS"
+			displayVideos "$videos"
 			echo "Enter in the video to go to."
-			LINE=$(selectItem "$VIDEOS")
-			if [[ -z "$LINE" ]]
+			line=$(selectItem "$videos")
+			if [[ -z "$line" ]]
 			then
 				echo "The input was not a number."
 			else
-				ID=$(echo "$LINE" | cut -b 1-$ID_LENGTH)
-				URL=$(urlFromId "$ID")
-				updateVars $URL
+				id=$(echo "$line" | cut -b 1-$ID_LENGTH)
+				url=$(urlFromId "$ID")
+				updateVars $url
 			fi
 			;;
 		/?*)
-			URL=$(generateSearchQuery "$(echo "$ACTION" | cut -b 2-)")
+			url=$(generateSearchQuery "$(echo "$ACTION" | cut -b 2-)")
 			#This was missing a close paren and I was wondering what was wrong
 			#for 20 minutes. I am dumb.
-			updateVars $URL
+			updateVars $url
 			;;
 		d)
-			echo "You are on this page: $URL"
+			echo "You are on this page: $url"
 			echo "Suggested videos:"
-			displayVideos "$VIDEOS"
+			displayVideos "$videos"
 			;;
 		p)
-			viewVideo "$URL"
+			viewVideo "$url"
 			;;
 		vc)
-			viewThumbnail "$(echo "$URL" | cut -b 33-)"
+			viewThumbnail "$(echo "$url" | cut -b 33-)"
 			;;
 		vs)
-			displayVideos "$VIDEOS"
+			displayVideos "$videos"
 			echo "Enter in the video to view the thumbnail of"
-			read LINE
-			viewThumbnail "$(echo "$VIDEOS" | cut -b 1-$ID_LENGTH | sed "${LINE}q;d")"
+			read line
+			viewThumbnail "$(echo "$videos" | cut -b 1-$ID_LENGTH | sed "${line}q;d")"
 			;;
 		c)
-			CHANNEL_DATA=$(getChannelCreator "$URL")
-			CHANNEL_ID=$(echo "$CHANNEL_DATA" | cut -b 1-$CHANNEL_ID_LENGTH)
-			CHANNEL_NAME=$(echo "$CHANNEL_DATA" | cut -b $(calc $CHANNEL_ID_LENGTH+1)-)
-			echo "Channel id: $CHANNEL_ID"
-			echo "Channel name: $CHANNEL_NAME"
+			channelData=$(getChannelCreator "$url")
+			channelId=$(echo "$channelData" | cut -b 1-$CHANNEL_ID_LENGTH)
+			channelName=$(echo "$channelData" | cut -b $(($CHANNEL_ID_LENGTH+1))-)
+			echo "Channel id: $channelId"
+			echo "Channel name: $channelName"
 			;;
 		cc)
-			CHANNEL_DATA=$(getChannelCreator "$URL")
-			CHANNEL_ID=$(echo "$CHANNEL_DATA" | cut -b 1-$CHANNEL_ID_LENGTH)
-			URL=$(urlFromChannelId "$CHANNEL_ID")
-			updateVars $URL
+			channelData=$(getChannelCreator "$url")
+			channelId=$(echo "$channelData" | cut -b 1-$CHANNEL_ID_LENGTH)
+			url=$(urlFromChannelId "$channelId")
+			updateVars $url
 			;;
 		o)
-			read FILE
+			echo "Enter in the new file."
+			read newFile
+			if [[ "$newFile" != "" ]]
+			then
+				echo "That was an empty string"
+			else
+				file="$newFile"
+			fi
 			;;
 		or)
-			read FILE
+			echo "Enter in the new file."
+			read newFile
+			if [[ -z "$newFile" ]]
+			then
+				echo "That was an empty string"
+			else
+				file="$newFile"
+			fi
 			echo ""
-			SUBSCRIPTIONS=$(cat "$FILE")
+			subscriptions=$(cat "$file")
 			;;
 		sa)
-			CHANNEL_DATA=$(getChannelCreator "$URL")
-			SUBSCRIPTIONS=$(echo -e "$SUBSCRIPTIONS\n$CHANNEL_DATA" | uniq | awk "NF")
-			echo "You are now subscribed to $(echo "$CHANNEL_DATA" | cut -b $(calc $CHANNEL_ID_LENGTH+1)-)"
+			channelData=$(getChannelCreator "$URL")
+			subscriptions=$(echo -e "$subscriptions\n$channelData" | uniq | awk "NF")
+			echo "You are now subscribed to $(echo "$channelData" | cut -b $(($CHANNEL_ID_LENGTH + 1))-)"
 			;;
 		sv)
 			echo "You are subscribed to:"
-			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)-
+			echo "$subscriptions" | cut -b $(($CHANNEL_ID_LENGTH + 1))-
 			;;
 		ss)
 			echo "Please select a channel to go to"
-			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
-			LINE=$(selectItem "$(echo "$SUBSCRIPTIONS" | cut -b 1-$CHANNEL_ID_LENGTH)")
-			if [[ -z "$LINE" ]]
+			echo "$subscriptions" | cut -b $(($CHANNEL_ID_LENGTH + 1))- | nl -n ln -b a
+			line=$(selectItem "$(echo "$subscriptions" | cut -b 1-$CHANNEL_ID_LENGTH)")
+			if [[ -z "$line" ]]
 			then
 				echo "That wasn't a number."
 			else
-				URL=$(urlFromChannelId $LINE)
-				updateVars $URL
+				url=$(urlFromChannelId $line)
+				updateVars $url
 			fi
 			;;
 		su)
 			echo "Please select a channel to unsubscribe from"
-			echo "$SUBSCRIPTIONS" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
-			read LINE
-			SUBSCRIPTIONS=$(echo "$SUBSCRIPTIONS" | awk "NR != $LINE")
+			echo "$subscriptions" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
+			read line
+			SUBSCRIPTIONS=$(echo "$subscriptions" | awk "NR != $line")
+			;;
+		r)
+			echo "Refreshing"
+			updateVars $url
 			;;
 		q)
 			end

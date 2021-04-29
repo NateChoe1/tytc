@@ -29,19 +29,19 @@ getData() {
 	#https://www.metaltoad.com/blog/regex-quoted-string-escapable-quotes
 	if [[ "$1" =~ ^https://www.youtube.com/?$ ]]
 	then
-		rawData=$(echo "$HTML" | grep -Po "{\"videoId\":$STRING_REGEX,.*?\"text\":$STRING_REGEX" | cut -b 13- | uniq -w 11)
+		rawData=$(echo "$html" | grep -Po "{\"videoId\":$STRING_REGEX,.*?\"text\":$STRING_REGEX" | cut -b 13- | uniq -w 11)
 		#includes the name of the video and the id
 		id=$(echo "$rawData" | cut -b 1-11)
 		title=$(echo "$rawData" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ "$1" =~ ^https://www.youtube.com/watch\?v=[a-zA-Z0-9_-]{11}/?$ ]]
 	then
-		rawData=$(echo "$HTML" | grep -Po "\"simpleText\":$STRING_REGEX},\"(short|long)BylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
+		rawData=$(echo "$html" | grep -Po "\"simpleText\":$STRING_REGEX},\"(short|long)BylineText\":.*?\"videoId\":\"[a-zA-Z0-9_-]{11}\"")
 		#includes the name of the video and the id
 		id=$(echo "$rawData" | grep -Po "\"videoId\":\"[a-zA-Z0-9_-]{11}\"" | cut -b 12-22)
 		title=$(echo "$rawData" | grep -Po "^\"simpleText\":$STRING_REGEX" | cut -b 15- | sed 's/.$//');
 	elif [[ $1 =~ ^https://www.youtube.com/results\?search_query=.*/?$ ]]
 	then
-		rawData=$(echo "$HTML" | grep -Po "\"videoId\":$STRING_REGEX,\"thumbnail\".*?\"text\":$STRING_REGEX" | cut -b 12-)
+		rawData=$(echo "$html" | grep -Po "\"videoId\":$STRING_REGEX,\"thumbnail\".*?\"text\":$STRING_REGEX" | cut -b 12-)
 		id=$(echo "$rawData" | cut -b 1-11)
 		title=$(echo "$rawData" | grep -Po "$STRING_REGEX$" | cut -b 2- | sed 's/.$//')
 	elif [[ $1 =~ ^https://www.youtube.com/playlist ]]
@@ -53,6 +53,7 @@ getData() {
 	#This could probably be done with a case statement but the second regex would be massive.
 
 	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u
+	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u >> /dev/stderr
 }
 #getData reads from HTML and outputs all the related videos (or front page videos in the case of https://www.youtube.com/) in this form:
 #[11 characters for the id of the video] [the title of the video]
@@ -218,7 +219,7 @@ do
 			;;
 		\>?*)
 			url=$(echo "$ACTION" | cut -b 2-)
-			updateVars $url
+			updateVars "$url"
 			;;
 		s)
 			displayVideos "$videos"

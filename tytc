@@ -86,7 +86,7 @@ urlFromChannelId() {
 	#The play all feature in youtube generates a playlist with the following format:
 	#https:///www.youtube.com/playlist?list=UU{CHANNEL_ID]}
 	#where CHANNEL_ID has the first 2 characters, which are always UC, removed. This new CHANNEL_ID is really just the modified channel ID for the link.
-	echo "https://www.youtube.com/playlist?list=$chanelId"
+	echo "https://www.youtube.com/playlist?list=$channelId"
 }
 
 sanitizeSearch() {
@@ -128,7 +128,7 @@ displayVideos() {
 	videoCount=$(echo "$videoList" | wc -l)
 	if [[ "$videoCount" -gt $PAGE_LENGTH ]]
 	then
-		echo "There seem to be more than $PAGE_LENGTH videos on the list (specifically $VIDEO_COUNT). There are 4 possible things you can do in this situation:"
+		echo "There seem to be more than $PAGE_LENGTH videos on the list (specifically $VIDEO_COUNT). There are 2 possible things you can do in this situation:"
 		echo "(1): Just print out the list like normal"
 		echo "(2): Pipe the list through less"
 		echo "If you enter something not in this list, the list just won't print."
@@ -161,7 +161,7 @@ fi
 trap end INT
 
 end() {
-	rm "$file"
+	rm "$file" 2> /dev/null
 	echo "$subscriptions" >> "$file"
 	exit
 }
@@ -229,7 +229,7 @@ do
 				echo "The input was not a number."
 			else
 				id=$(echo "$line" | cut -b 1-$ID_LENGTH)
-				url=$(urlFromId "$ID")
+				url=$(urlFromId "$id")
 				updateVars $url
 			fi
 			;;
@@ -272,7 +272,7 @@ do
 		o)
 			echo "Enter in the new file."
 			read newFile
-			if [[ "$newFile" != "" ]]
+			if [[ -z "$newFile" ]]
 			then
 				echo "That was an empty string"
 			else
@@ -292,7 +292,7 @@ do
 			subscriptions=$(cat "$file")
 			;;
 		sa)
-			channelData=$(getChannelCreator "$URL")
+			channelData=$(getChannelCreator "$url")
 			subscriptions=$(echo -e "$subscriptions\n$channelData" | uniq | awk "NF")
 			echo "You are now subscribed to $(echo "$channelData" | cut -b $(($CHANNEL_ID_LENGTH + 1))-)"
 			;;
@@ -314,9 +314,9 @@ do
 			;;
 		su)
 			echo "Please select a channel to unsubscribe from"
-			echo "$subscriptions" | cut -b $(calc $CHANNEL_ID_LENGTH+1)- | nl -n ln -b a
+			echo "$subscriptions" | cut -b $(($CHANNEL_ID_LENGTH + 1))- | nl -n ln -b a
 			read line
-			SUBSCRIPTIONS=$(echo "$subscriptions" | awk "NR != $line")
+			subscriptions=$(echo "$subscriptions" | awk "NR != $line")
 			;;
 		r)
 			echo "Refreshing"

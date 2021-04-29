@@ -53,7 +53,6 @@ getData() {
 	#This could probably be done with a case statement but the second regex would be massive.
 
 	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u
-	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u >> /dev/stderr
 }
 #getData reads from HTML and outputs all the related videos (or front page videos in the case of https://www.youtube.com/) in this form:
 #[11 characters for the id of the video] [the title of the video]

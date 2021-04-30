@@ -151,12 +151,8 @@ displayVideos() {
 
 url="N/A"
 videos="N/A"
-subscriptions=""
 file="$HOME/.cache/tytc/subscriptions"
-if [ -f "$FILE" ]
-then
-	subscriptions=$(cat "$file")
-fi
+subscriptions=$(cat "$file" 2> /dev/null)
 
 trap end INT
 

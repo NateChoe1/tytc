@@ -2,8 +2,7 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
+# # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
@@ -128,7 +127,7 @@ displayVideos() {
 	videoCount=$(echo "$videoList" | wc -l)
 	if [[ "$videoCount" -gt $PAGE_LENGTH ]]
 	then
-		echo "There seem to be more than $PAGE_LENGTH videos on the list (specifically $VIDEO_COUNT). There are 2 possible things you can do in this situation:"
+		echo "There seem to be more than $PAGE_LENGTH videos on the list (specifically $videoCount). There are 2 possible things you can do in this situation:"
 		echo "(1): Just print out the list like normal"
 		echo "(2): Pipe the list through less"
 		echo "If you enter something not in this list, the list just won't print."

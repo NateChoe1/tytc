@@ -51,7 +51,8 @@ getData() {
 	fi
 	#This could probably be done with a case statement but the second regex would be massive.
 
-	paste <(echo "$id") <(echo "$title") "-d\0" | uniq -u
+	paste <(echo "$id") <(echo "$title") "-d\0" | nl -n ln -b a | sort -k 2 | uniq -f 1 | sort -n -k 1 | cut -b 9-
+#Number the lines, sort by ids/titles, remove all duplicated ids/titles, resort by moved line numbers, remove line numbers
 }
 #getData reads from HTML and outputs all the related videos (or front page videos in the case of https://www.youtube.com/) in this form:
 #[11 characters for the id of the video] [the title of the video]

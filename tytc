@@ -110,7 +110,7 @@ generateSearchQuery() {
 
 
 
-viewVideo() { mpv "$1" "--ytdl-raw-options-add=user-agent=$USER_AGENT"; }
+viewVideo() { mpv "$1" ${@:2}; }
 
 selectItem() {
 	read line
@@ -151,14 +151,14 @@ displayVideos() {
 
 url="N/A"
 videos="N/A"
-file="$HOME/.cache/tytc/subscriptions"
+file="$HOME/.local/share/tytc/subscriptions"
 subscriptions=$(cat "$file" 2> /dev/null)
 
 trap end INT
 
 end() {
-	rm "$file" 2> /dev/null
-	echo "$subscriptions" >> "$file"
+	mkdir -p "$(dirname $file)"
+	echo "$subscriptions" > "$file"
 	exit
 }
 
@@ -184,7 +184,9 @@ do
 	echo "Enter in the next action (? for help)"
 	read ACTION
 
-	case "$ACTION" in
+	set -- $ACTION
+
+	case "$1" in
 		\?)
 			echo "Commands:"
 			echo "?         Show this screen"
@@ -194,6 +196,8 @@ do
 			echo "/[query]  Search on youtube."
 			echo "d         Display the current URL and suggested videos"
 			echo "p         Play the current video"
+			echo "pv        Play the current video without audio"
+			echo "pa        Play the current video without video"
 			echo "vc        View the thumbnail of the current video"
 			echo "vs        View the thumbnail of a suggested video"
 			echo "c         See information on the channel of the video"
@@ -241,7 +245,17 @@ do
 			displayVideos "$videos"
 			;;
 		p)
-			viewVideo "$url"
+			if [ $# -lt 2 ] ; then
+				viewVideo "$url"
+			else
+				viewVideo "$url" --ytdl-format="bestvideo[height<=$2]+bestaudio/best"
+			fi
+			;;
+		pv)
+			viewVideo "$url" --no-audio
+			;;
+		pa)
+			viewVideo "$url" --no-video
 			;;
 		vc)
 			viewThumbnail "$(echo "$url" | cut -b 33-)"
